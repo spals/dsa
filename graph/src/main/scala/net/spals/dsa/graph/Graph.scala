@@ -4,69 +4,54 @@ package net.spals.dsa.graph
   * Functional implementation of a weighted graph.
   *
   * @author spags
+  * @author tkral
   */
-class Graph[T, W] {
-  // set of all vertices
-  var vertices = Set[Vertex[T]]()
-  // an edge function given two vertices does there an exist some weight?
-  var func: (Vertex[T], Vertex[T]) => Option[W] = (v1, v2) => None
+case class Edge[T, W](v1: Vertex[T], v2: Vertex[T], w: W) {  }
 
-  def addVertex(v: Vertex[T]): Unit = {
-    vertices += v
+case class Vertex[T](v: T) {  }
+
+case class WeightedGraph[T, W](vertices: Set[Vertex[T]], edgeFunc: (Vertex[T], Vertex[T]) => Option[W]) {
+
+  def addEdge(v1: Vertex[T], v2: Vertex[T], w: W): WeightedGraph[T, W] = {
+    val addEdgeFunc: (Vertex[T], Vertex[T]) => Option[W] =
+      (vx, vy) => (vx, vy) match {
+        case (vx, vy) if (vx == v1 && vy == v2) || (vx == v2 && vy == v1) => Option(w)
+        case _ => edgeFunc.apply(vx, vy)
+      }
+    WeightedGraph(vertices ++ Set(v1, v2), addEdgeFunc)
   }
 
-  def removeVertex(v: Vertex[T]): Unit = {
-    vertices -= v
-    val temp = func
-    func = (x: Vertex[T], y: Vertex[T]) =>
-      if (x == v || y == v)
-        None
-      else
-        temp(x, y)
-  }
-
-  def hasEdge(v1: Vertex[T], v2: Vertex[T]): Boolean = {
-    func.apply(v1, v2).isDefined
-  }
-
-  def addEdge(v1: Vertex[T], v2: Vertex[T], w: W): Unit = {
-    addVertex(v1)
-    addVertex(v2)
-    val temp = func
-    func = (x: Vertex[T], y: Vertex[T]) =>
-      if ((x == v1 && y == v2) || (x == v2 && y == v1))
-        Option(w)
-      else
-        temp(x, y)
+  def addVertex(v: Vertex[T]): WeightedGraph[T, W] = {
+    WeightedGraph(vertices + v, edgeFunc)
   }
 
   def getEdge(v1: Vertex[T], v2: Vertex[T]): Option[W] = {
-    func.apply(v1, v2)
+    edgeFunc.apply(v1, v2)
   }
 
   def getEdges(v1: Vertex[T]): Set[Edge[T, W]] = {
-    var edges = Set[Edge[T, W]]()
-    vertices.foreach(
-      v2 => func.apply(v1, v2).foreach(w => edges += new Edge(v1, v2, w))
-    )
-    edges
+    vertices.map(v2 => (v2, edgeFunc.apply(v1, v2)))
+      .filter(_._2.isDefined)
+      .map(tuple => new Edge[T, W](v1, tuple._1, tuple._2.get))
   }
 
   def getNeighbors(v1: Vertex[T]): Set[Vertex[T]] = {
-    var neighbors = Set[Vertex[T]]()
-    vertices.foreach(
-      v2 => func.apply(v1, v2).foreach(w => neighbors += v2)
-    )
-    neighbors
+    vertices.map(v2 => (v2, edgeFunc.apply(v1, v2)))
+      .filter(_._2.isDefined)
+      .map(_._1)
   }
 
-  def getVertices: Set[Vertex[T]] = {
-    vertices
+  def hasEdge(v1: Vertex[T], v2: Vertex[T]): Boolean = {
+    edgeFunc.apply(v1, v2).isDefined
   }
-}
 
-class Edge[T, W](v1: Vertex[T], v2: Vertex[T], w: W) {
-}
+  def removeVertex(v: Vertex[T]): WeightedGraph[T, W] = {
+    val removeVertexFunc: (Vertex[T], Vertex[T]) => Option[W] =
+      (vx, vy) => (vx, vy) match {
+        case (vx, vy) if vx == v || vy == v => None
+        case _ => edgeFunc.apply(vx, vy)
+      }
 
-class Vertex[T](v: T) {
+    WeightedGraph(vertices - v, removeVertexFunc)
+  }
 }
