@@ -1,0 +1,21 @@
+# Eclipse files
+.project
+.classpath
+.settings/
+
+# IntelliJ files
+.idea
+*.iml
+
+# Mac files
+.DS_Store
+
+# Output files
+target/
+test-output/
+logs/
+bin/
+*~
+
+# Scala files
+.cache
