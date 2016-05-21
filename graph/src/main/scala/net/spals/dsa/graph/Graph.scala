@@ -10,6 +10,11 @@ case class Edge[T, W](v1: Vertex[T], v2: Vertex[T], w: W) {  }
 
 case class Vertex[T](v: T) {  }
 
+object WeightedGraph {
+
+  def empty[T, W]: WeightedGraph[T, W] = WeightedGraph(Set.empty[Vertex[T]], (v1, v2) => Option.empty[W])
+}
+
 case class WeightedGraph[T, W](vertices: Set[Vertex[T]], edgeFunc: (Vertex[T], Vertex[T]) => Option[W]) {
 
   def addEdge(v1: Vertex[T], v2: Vertex[T], w: W): WeightedGraph[T, W] = {
