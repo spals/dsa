@@ -11,12 +11,14 @@
         <scala.version>2.11</scala.version>
         <!-- The scala library version must be compatible with scala.version -->
         <scala-library.version>2.11.7</scala-library.version>
+        <spals.dsa.version>1.0.0</spals.dsa.version>
 
         <!-- Plugin versions -->
         <scala-maven-plugin.version>3.2.2</scala-maven-plugin.version>
     </properties>
 
     <modules>
+        <module>graph</module>
     </modules>
 
     <dependencies>
@@ -29,6 +31,11 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>net.spals.dsa</groupId>
+                <artifactId>spals-dsa-graph</artifactId>
+                <version>${spals.dsa.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
