@@ -10,15 +10,19 @@
         <!-- Dependency versions -->
         <scala.version>2.11</scala.version>
         <!-- The scala library version must be compatible with scala.version -->
-        <scala-library.version>2.11.7</scala-library.version>
+        <scala-library.version>2.11.8</scala-library.version>
+        <scalatest.version>3.0.0-RC1</scalatest.version>
         <spals.dsa.version>1.0.0</spals.dsa.version>
 
         <!-- Plugin versions -->
+        <maven-surefire-plugin.version>2.19</maven-surefire-plugin.version>
         <scala-maven-plugin.version>3.2.2</scala-maven-plugin.version>
+        <scalatest-maven-plugin.version>1.0</scalatest-maven-plugin.version>
     </properties>
 
     <modules>
         <module>graph</module>
+        <module>graph-test</module>
     </modules>
 
     <dependencies>
@@ -36,6 +40,12 @@
                 <artifactId>spals-dsa-graph</artifactId>
                 <version>${spals.dsa.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.scalatest</groupId>
+                <artifactId>scalatest_${scala.version}</artifactId>
+                <version>${scalatest.version}</version>
+                <scope>test</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -45,11 +55,52 @@
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
                 <version>${scala-maven-plugin.version}</version>
+                <!-- Common scala compiler configuration -->
+                <configuration>
+                    <scalaVersion>${scala-library.version}</scalaVersion>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compile</goal>
+                            <goal>testCompile</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
 
         <pluginManagement>
             <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven-surefire-plugin.version}</version>
+                    <!-- Common unit test configuration -->
+                    <configuration>
+                        <parallel>methods</parallel>
+                        <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                        <threadCount>10</threadCount>
+                    </configuration>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.scalatest</groupId>
+                    <artifactId>scalatest-maven-plugin</artifactId>
+                    <version>${scalatest-maven-plugin.version}</version>
+                    <configuration>
+                        <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
+                        <junitxml>.</junitxml>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>test</id>
+                            <goals>
+                                <goal>test</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
             </plugins>
         </pluginManagement>
     </build>
