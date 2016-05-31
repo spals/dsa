@@ -1,5 +1,7 @@
 package net.spals.dsa.graph
 
+import scala.collection.mutable
+
 /**
   * Functional implementation of a weighted graph.
   *
@@ -16,7 +18,7 @@ trait Graph[T, W] {
 
   def getNeighbors(v: Vertex[T]): Set[Vertex[T]]
 
-  def getVertices(): Set[Vertex[T]]
+  def getVertices: Set[Vertex[T]]
 
   def getWeight(v1: Vertex[T], v2: Vertex[T]): Option[W]
 
@@ -26,7 +28,7 @@ trait Graph[T, W] {
 
   def removeVertex(v: Vertex[T]): Graph[T, W]
 
-//  def sumEdges[N >: W](implicit num: Numeric[N]): W
+  //  def sumEdges[N >: W](implicit num: Numeric[N]): W
 }
 
 case class Edge[T, W](v1: Vertex[T], v2: Vertex[T], weight: W) {}
@@ -53,9 +55,6 @@ case class WeightedGraph[T, W](vertices: Set[Vertex[T]], edgeFunc: (Vertex[T], V
   override def addVertex(v: Vertex[T]): WeightedGraph[T, W] =
     WeightedGraph(vertices + v, edgeFunc)
 
-  override def getEdge(v1: Vertex[T], v2: Vertex[T]): Option[Edge[T, W]] =
-    edgeFunc.apply(v1, v2).map(Edge(v1, v2, _))
-
   override def getEdges(v: Vertex[T]): Set[Edge[T, W]] =
     vertices.map(v2 => (v2, edgeFunc.apply(v, v2) /*weight*/ ))
       .filter(_._2.isDefined)
@@ -71,6 +70,9 @@ case class WeightedGraph[T, W](vertices: Set[Vertex[T]], edgeFunc: (Vertex[T], V
   override def getWeight(v1: Vertex[T], v2: Vertex[T]): Option[W] =
     getEdge(v1, v2).map(_.weight)
 
+  override def getEdge(v1: Vertex[T], v2: Vertex[T]): Option[Edge[T, W]] =
+    edgeFunc.apply(v1, v2).map(Edge(v1, v2, _))
+
   override def hasEdge(v1: Vertex[T], v2: Vertex[T]): Boolean = {
     edgeFunc.apply(v1, v2).isDefined
   }
@@ -78,9 +80,9 @@ case class WeightedGraph[T, W](vertices: Set[Vertex[T]], edgeFunc: (Vertex[T], V
   override def removeEdge(v1: Vertex[T], v2: Vertex[T]): WeightedGraph[T, W] = {
     val removeEdgeFunc: (Vertex[T], Vertex[T]) => Option[W] =
       (vx, vy) => (vx, vy) match {
-          case (`vx`, `vy`) if (vx == v1 && vy == v2) || (vx == v2 && vy == v1) => None
-          case _ => edgeFunc.apply(vx, vy)
-        }
+        case (`vx`, `vy`) if (vx == v1 && vy == v2) || (vx == v2 && vy == v1) => None
+        case _ => edgeFunc.apply(vx, vy)
+      }
 
     WeightedGraph(vertices, removeEdgeFunc)
   }
@@ -95,9 +97,9 @@ case class WeightedGraph[T, W](vertices: Set[Vertex[T]], edgeFunc: (Vertex[T], V
     WeightedGraph(vertices - v, removeVertexFunc)
   }
 
-//  override def sumEdges[N >: W](implicit num: Numeric[N]): N = {
-//    val x: N = vertices.map(getEdges(_).map(_.weight).sum / ).sum
-//  }
+  //  override def sumEdges[N >: W](implicit num: Numeric[N]): N = {
+  //    val x: N = vertices.map(getEdges(_).map(_.weight).sum / ).sum
+  //  }
 }
 
 object SimpleGraph {
@@ -130,5 +132,65 @@ case class SimpleGraph[T](delegate: WeightedGraph[T, Int]) extends Graph[T, Int]
 
   override def removeVertex(v: Vertex[T]): SimpleGraph[T] = SimpleGraph(delegate.removeVertex(v))
 
-//  override def sumEdges[]: Int = delegate.sumEdges
+  //  override def sumEdges[]: Int = delegate.sumEdges
+}
+
+//  override def sumEdges[N >: W](implicit num: Numeric[N]): N = {
+
+
+object things {
+
+  def dijkstra[T, W](graph: Graph[T, W], source: Vertex[T])(implicit n: Numeric[W]): (mutable.HashMap[Vertex[T], Option[W]], mutable.HashMap[Vertex[T], Vertex[T]]) = {
+    val vertexes = new mutable.HashSet[Vertex[T]]
+    val dist = new mutable.HashMap[Vertex[T], Option[W]]
+    val prev = new mutable.HashMap[Vertex[T], Vertex[T]]
+
+    graph.getVertices.foreach(
+      v => {
+        dist.put(v, Option.empty)
+        vertexes.add(v)
+      }
+    )
+    dist.put(source, Option(n.zero))
+
+    while (vertexes.nonEmpty) {
+      // this is suppose to find the minimum distance thus far, a more efficient implementation would be using a
+      // priority queue
+      val (minV, minW) = vertexes.foldLeft((vertexes.head, dist(vertexes.head))) {
+        case ((v1, Some(w1)), v2) => dist(v2) match {
+          case Some(w2) => if (n.compare(w1, w2) > 0) {
+            (v2, Option(w2))
+          } else {
+            (v1, Option(w1))
+          }
+          case None => (v1, Option(w1))
+        }
+        case ((v1, None), v2) => (v2, dist(v2))
+      }
+      vertexes.remove(minV)
+      graph.getNeighbors(minV)
+        .intersect(vertexes)
+        .foreach(
+          v => {
+            minW match {
+              case Some(w1) =>
+                val distance = n.plus(w1, graph.getEdge(minV, v).get.weight)
+                dist(v) match {
+                  case Some(w2) =>
+                    if (n.compare(distance, w2) < 0) {
+                      dist.put(v, Option(distance))
+                      prev.put(v, minV)
+                    }
+                  case None =>
+                    dist.put(v, Option(distance))
+                    prev.put(v, minV)
+                }
+              case None =>
+                throw new IllegalStateException("this is not possible as min vertex weight has to be defined here.")
+            }
+          }
+        )
+    }
+    (dist, prev)
+  }
 }
